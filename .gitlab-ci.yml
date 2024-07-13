@@ -1,0 +1,296 @@
+stages:
+  - install
+  - lint
+  - test
+  - release
+  - package
+  - deploy
+
+  # Environments
+
+.dev: &dev
+  variables:
+    ENV: DEV
+    VAR_SERVER: $CI_SERVER_DEV
+    SERVER_USER: root
+    SSH_PRIVATE_KEY: $SSH_PRIVATE_KEY_DEV
+    PRIVATE_KEY: $PRIVATE_KEY_DEV
+    MONGO_USERNAME: gednovadevnova
+    MONGO_PASSWORD: $MONGO_PASSWORD_DEV
+    MONGO_PORT: 28090
+    PORT: 8190
+    URL_FRONT: ged-nova.dev.tic-nova.com
+    TOKEN_ALERT_BULL_WFN: EZY3lw1gbJJQu-fyuht4dfnjdALNGKYHQk5uUIQw_Yf74TN484UojPdwuq-_oL3UWbcV
+    PROTOCAL_FRONT: https
+    EMAIL_HOST: ssl0.ovh.net
+    EMAIL_PORT: 465
+    EMAIL_USER: dev-team@tic-nova.com
+    EMAIL_PASS: dev-team0
+    BCC_EMAIL_USER: tic.nova.com@gmail.com
+
+.valid: &valid
+  variables:
+    ENV: VALID
+    VAR_SERVER: $CI_SERVER_VALID
+    SERVER_USER: root
+    SSH_PRIVATE_KEY: $SSH_PRIVATE_KEY_VALID
+    PRIVATE_KEY: $PRIVATE_KEY_VALID
+    MONGO_USERNAME: validgednovaticnova
+    MONGO_PASSWORD: $MONGO_PASSWORD_VALID
+    MONGO_PORT: 28091
+    PORT: 8191
+    URL_FRONT: ged-nova.valid.tic-nova.com
+    TOKEN_ALERT_BULL_WFN: EZY3lw1gbJJQu-fyuht4dfnjdALNGKYHQk5uUIQw_Yf74TN484UojPdwuq-_oL3UWbcV
+    PROTOCAL_FRONT: https
+    EMAIL_HOST: ssl0.ovh.net
+    EMAIL_PORT: 465
+    EMAIL_USER: dev@tic-nova.com
+    EMAIL_PASS: $EMAIL_PASS_VALID
+    BCC_EMAIL_USER: tic.nova.com@gmail.com
+
+.prod: &prod
+  variables:
+    ENV: PROD
+    VAR_SERVER: $CI_SERVER_PROD
+    SERVER_USER: root
+    SSH_PRIVATE_KEY: $SSH_PRIVATE_KEY_PROD
+    PRIVATE_KEY: $PRIVATE_KEY_PROD
+    MONGO_USERNAME: ticgednova
+    MONGO_PASSWORD: $MONGO_PASSWORD_PROD
+    MONGO_PORT: 28092
+    PORT: 8192
+    URL_FRONT: ged-nova.tic-nova.com
+    TOKEN_ALERT_BULL_WFN: EZY3lw1gbJJQu-fyuht4dfnjdALNGKYHQk5uUIQw_Yf74TN484UojPdwuq-_oL3UWbcV
+    PROTOCAL_FRONT: https
+    EMAIL_HOST: ssl0.ovh.net
+    EMAIL_PORT: 465
+    EMAIL_USER: no-reply@tic-nova.com
+    EMAIL_PASS: $EMAIL_PASS_PROD
+    BCC_EMAIL_USER: tic.nova.com@gmail.com
+.prod_2: &prod_2
+  variables:
+    ENV: PROD
+    VAR_SERVER: $CI_SERVER_PROD_XL
+    SERVER_USER: root
+    SSH_PRIVATE_KEY: $SSH_PRIVATE_KEY_PROD_XL
+    PRIVATE_KEY: $PRIVATE_KEY_PROD
+    MONGO_USERNAME: ticgednova
+    MONGO_PASSWORD: $MONGO_PASSWORD_PROD
+    MONGO_PORT: 28092
+    PORT: 8192
+    URL_FRONT: ged-nova.tic-nova.com
+    TOKEN_ALERT_BULL_WFN: EZY3lw1gbJJQu-fyuht4dfnjdALNGKYHQk5uUIQw_Yf74TN484UojPdwuq-_oL3UWbcV
+    PROTOCAL_FRONT: https
+    EMAIL_HOST: ssl0.ovh.net
+    EMAIL_PORT: 465
+    EMAIL_USER: no-reply@tic-nova.com
+    EMAIL_PASS: $EMAIL_PASS_PROD
+    BCC_EMAIL_USER: tic.nova.com@gmail.com
+
+# Branches
+
+.develop: &develop
+  only:
+    - develop
+
+.branches: &branches
+  except:
+    - develop
+    - main
+
+.main: &main
+  only:
+    - main
+
+# Misc
+
+.manual: &manual
+  when: manual
+
+.version_branch: &version_branch
+  before_script:
+    - apk update && apk add git
+    - apk update && apk add jq
+    - VERSION=`cat ./package.json | jq -r .version`
+    - VERSION=${VERSION}-${CI_COMMIT_REF_SLUG}-SNAPSHOT
+    - echo ${VERSION}
+
+.version_snapshot: &version_snapshot
+  before_script:
+    - apk update && apk add jq
+    - VERSION=`cat ./package.json | jq -r .version`
+    - VERSION=${VERSION}-SNAPSHOT
+    - echo ${VERSION}
+
+.version:  &version
+  before_script:
+    - apk update && apk add jq
+    - VERSION=`cat ./package.json | jq -r .version`
+    - echo ${VERSION}
+# Stages
+
+install:
+  image: node:20-alpine
+  stage: install
+  script:
+    - npm -v
+    - node -v
+    - npm ci --omit=dev --ignore-scripts
+    - echo "Done"
+
+lint:
+  image: node:20-alpine
+  stage: lint
+  script:
+    - npm ci --ignore-scripts
+    - npm run lint
+    - echo "Done"
+
+test:
+  image: node:20-alpine
+  stage: test
+  script:
+    - npm ci --ignore-scripts
+    - npm run test
+    - echo "Done"
+
+# Release main
+release:
+  <<: *version
+  <<: *main
+  image: node:20-alpine
+  stage: release
+  script:
+    - npm i git-tags@0.2.4
+    - apk add --update git
+    - git config --global user.email "bbmouadh90@gmail.com"
+    - git config --global user.name "Ci Pipeline"
+    - git config --global push.followTags true
+    - git status
+    - node ./deploy/change-log.js ${VERSION}
+
+# Package
+.package_gitlab: &package_gitlab
+  stage: package
+  image: docker:dind
+  services:
+    - docker:dind
+  variables:
+    DOCKER_DRIVER: overlay
+  script:
+    - apk --update add curl bash
+    - rm -rf node_modules
+    - rm -rf Dockerfile
+    - mv ./deploy/Dockerfile ./
+    - rm -rf deploy
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE:${VERSION} .
+    - docker push $CI_REGISTRY_IMAGE:${VERSION}
+    - echo $CI_REGISTRY_IMAGE:${VERSION}
+
+package_branches_gitlab:
+  <<: *version_branch
+  <<: *package_gitlab
+  <<: *branches
+  <<: *manual
+
+package_develop_gitlab:
+  <<: *version_snapshot
+  <<: *package_gitlab
+  <<: *develop
+
+package_main_gitlab:
+  <<: *version
+  <<: *package_gitlab
+  <<: *main
+
+# Deploy
+.deploy: &deploy
+  image: alpine:latest
+  stage: deploy
+  script:
+    # Setup SSH deploy keys
+    - apk add --update coreutils curl bash
+    - 'which ssh-agent || ( apk add openssh-client )'
+    - eval $(ssh-agent -s)
+    - PRIVATE_KEY_SSH=`echo "$SSH_PRIVATE_KEY" | base64 --decode`
+    - echo "${PRIVATE_KEY_SSH}" | ssh-add -
+    - mkdir -p ~/.ssh
+    - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+    - echo $CI_COMMIT_BRANCH
+    - echo $VERSION
+    - echo $VAR_SERVER
+    - ssh $SERVER_USER@$VAR_SERVER "[ -d ged-nova ] || mkdir ged-nova"
+    - ssh $SERVER_USER@$VAR_SERVER "cd ged-nova && [ -d $CI_PROJECT_NAME ] || git clone https://$CI_SERVER_HOST/$CI_PROJECT_PATH.git"
+    - ssh $SERVER_USER@$VAR_SERVER "cd ged-nova/$CI_PROJECT_NAME/ && git reset --hard && git fetch --all && git checkout -f $CI_COMMIT_BRANCH && git reset --hard origin/$CI_COMMIT_BRANCH && git pull -q origin $CI_COMMIT_BRANCH && exit"
+    - now=$(date +%Y-%m-%dT%T) && echo $now
+    - ssh $SERVER_USER@$VAR_SERVER "cd ged-nova/$CI_PROJECT_NAME/ && sed -i -e "s/TAG-VERSION-CI/$VERSION/g" ./deploy/docker-compose.yml && sed -i -e "s/ENV-CI/$ENV/g" ./deploy/docker-compose.yml && sed -i -e "s/MONGO-USERNAME-CI/$MONGO_USERNAME/g" ./deploy/docker-compose.yml && sed -i -e "s/MONGO-PASSWORD-CI/$MONGO_PASSWORD/g" ./deploy/docker-compose.yml && sed -i -e "s/MONGO-PORT-CI/$MONGO_PORT/g" ./deploy/docker-compose.yml && sed -i -e "s/PORT-CI/$PORT/g" ./deploy/docker-compose.yml && sed -i -e "s/PROTOCAL-FRONT-CI/$PROTOCAL_FRONT/g" ./deploy/docker-compose.yml && sed -i -e "s/URL-FRONT-CI/$URL_FRONT/g" ./deploy/docker-compose.yml && sed -i -e "s/TOKEN-ALERT-BULL-WFN-CI/$TOKEN_ALERT_BULL_WFN/g" ./deploy/docker-compose.yml && sed -i -e "s/DATE-DEPLOY-CI/$now/g" ./deploy/docker-compose.yml && exit"
+    - ssh $SERVER_USER@$VAR_SERVER "cd ged-nova/$CI_PROJECT_NAME/ && sed -i -e "s/EMAIL-HOST-CI/$EMAIL_HOST/g" ./deploy/docker-compose.yml  && sed -i -e "s/EMAIL-PORT-CI/$EMAIL_PORT/g" ./deploy/docker-compose.yml && sed -i -e "s/BCC-EMAIL-USER-CI/$BCC_EMAIL_USER/g" ./deploy/docker-compose.yml && sed -i -e "s/EMAIL-DKIM-PRIVATE-KEY-CI/$EMAIL_DKIM_PRIVATE_KEY/g" ./deploy/docker-compose.yml && sed -i -e "s/EMAIL-USER-CI/$EMAIL_USER/g" ./deploy/docker-compose.yml && sed -i -e "s/EMAIL-PASS-CI/$EMAIL_PASS/g" ./deploy/docker-compose.yml && sed -i -e "s/PRIVATE-KEY-CI/$PRIVATE_KEY/g" ./deploy/docker-compose.yml && exit"
+    - ssh $SERVER_USER@$VAR_SERVER "cd ged-nova/$CI_PROJECT_NAME/ && docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY && exit"
+    - ssh $SERVER_USER@$VAR_SERVER "cd ged-nova/$CI_PROJECT_NAME/deploy && mkdir -p $ENV && mv --force docker-compose.yml $ENV && cd $ENV && docker kill $CI_PROJECT_NAME-$ENV || true && docker rm $CI_PROJECT_NAME-$ENV || true && docker rmi $CI_REGISTRY_IMAGE:${VERSION} || true && docker-compose up -d && exit"
+  environment:
+    name: $ENV
+  except:
+    - schedules
+# Deploy new
+.deploy_new: &deploy_new
+  image: alpine:latest
+  stage: deploy
+  script:
+    # Setup SSH deploy keys
+    - apk add --update coreutils curl bash
+    - 'which ssh-agent || ( apk add openssh-client )'
+    - eval $(ssh-agent -s)
+    - PRIVATE_KEY_SSH=`echo "$SSH_PRIVATE_KEY" | base64 --decode`
+    - echo "${PRIVATE_KEY_SSH}" | ssh-add -
+    - mkdir -p ~/.ssh
+    - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+    - echo $CI_COMMIT_BRANCH
+    - echo $VERSION
+    - echo $VAR_SERVER
+    - ssh $SERVER_USER@$VAR_SERVER "[ -d ged-nova ] || mkdir ged-nova"
+    - ssh $SERVER_USER@$VAR_SERVER "cd ged-nova && [ -d $CI_PROJECT_NAME ] || git clone https://$CI_SERVER_HOST/$CI_PROJECT_PATH.git"
+    - ssh $SERVER_USER@$VAR_SERVER "cd ged-nova/$CI_PROJECT_NAME/ && git reset --hard && git fetch --all && git checkout -f $CI_COMMIT_BRANCH && git reset --hard origin/$CI_COMMIT_BRANCH && git pull -q origin $CI_COMMIT_BRANCH && exit"
+    - now=$(date +%Y-%m-%dT%T) && echo $now
+    - ssh $SERVER_USER@$VAR_SERVER "cd ged-nova/$CI_PROJECT_NAME/ && sed -i -e "s/TAG-VERSION-CI/$VERSION/g" ./deploy/docker-compose.yml && sed -i -e "s/ENV-CI/$ENV/g" ./deploy/docker-compose.yml && sed -i -e "s/MONGO-USERNAME-CI/$MONGO_USERNAME/g" ./deploy/docker-compose.yml && sed -i -e "s/MONGO-PASSWORD-CI/$MONGO_PASSWORD/g" ./deploy/docker-compose.yml && sed -i -e "s/MONGO-PORT-CI/$MONGO_PORT/g" ./deploy/docker-compose.yml && sed -i -e "s/PORT-CI/$PORT/g" ./deploy/docker-compose.yml && sed -i -e "s/PROTOCAL-FRONT-CI/$PROTOCAL_FRONT/g" ./deploy/docker-compose.yml && sed -i -e "s/URL-FRONT-CI/$URL_FRONT/g" ./deploy/docker-compose.yml && sed -i -e "s/TOKEN-ALERT-BULL-CRM-CI/$TOKEN_ALERT_BULL_CRM/g" ./deploy/docker-compose.yml && sed -i -e "s/DATE-DEPLOY-CI/$now/g" ./deploy/docker-compose.yml && exit"
+    - ssh $SERVER_USER@$VAR_SERVER "cd ged-nova/$CI_PROJECT_NAME/ && sed -i -e "s/EMAIL-HOST-CI/$EMAIL_HOST/g" ./deploy/docker-compose.yml  && sed -i -e "s/EMAIL-PORT-CI/$EMAIL_PORT/g" ./deploy/docker-compose.yml && sed -i -e "s/BCC-EMAIL-USER-CI/$BCC_EMAIL_USER/g" ./deploy/docker-compose.yml && sed -i -e "s/EMAIL-DKIM-PRIVATE-KEY-CI/$EMAIL_DKIM_PRIVATE_KEY/g" ./deploy/docker-compose.yml && sed -i -e "s/EMAIL-USER-CI/$EMAIL_USER/g" ./deploy/docker-compose.yml && sed -i -e "s/EMAIL-PASS-CI/$EMAIL_PASS/g" ./deploy/docker-compose.yml && sed -i -e "s/PRIVATE-KEY-CI/$PRIVATE_KEY/g" ./deploy/docker-compose.yml && exit"
+    - ssh $SERVER_USER@$VAR_SERVER "cd ged-nova/$CI_PROJECT_NAME/ && docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY && exit"
+    - ssh $SERVER_USER@$VAR_SERVER "cd ged-nova/$CI_PROJECT_NAME/deploy && mkdir -p $CI_PROJECT_NAME-$ENV && mv --force docker-compose.yml $CI_PROJECT_NAME-$ENV && cd $CI_PROJECT_NAME-$ENV && docker kill $CI_PROJECT_NAME-$ENV || true && docker rm $CI_PROJECT_NAME-$ENV || true && docker rmi $CI_REGISTRY_IMAGE:${VERSION} || true && docker-compose up -d && exit"
+  environment:
+    name: $ENV
+  except:
+    - schedules
+
+deploy_branches:
+  <<: *version_branch
+  <<: *dev
+  <<: *deploy
+  <<: *branches
+  <<: *manual
+
+deploy_develop:
+  <<: *version_snapshot
+  <<: *dev
+  <<: *deploy
+  <<: *develop
+
+deploy_valid:
+  <<: *version
+  <<: *valid
+  <<: *deploy
+  <<: *main
+  <<: *manual
+
+deploy_prod:
+  <<: *version
+  <<: *prod
+  <<: *deploy
+  <<: *main
+  <<: *manual
+
+deploy_prod_2:
+  <<: *version
+  <<: *prod_2
+  <<: *deploy_new
+  <<: *main
+  <<: *manual

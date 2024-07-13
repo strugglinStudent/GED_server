@@ -1,0 +1,4 @@
+{
+  "pattern":"^((FEATURE|BUGFIX|CHORE|DOCS|STYLE|REFACTO|TEST|QUALITY|RELEASE)-(INN|HMP|HLP|PAY|AUT|TMS|GEO|CRM|WF|GED)-(\\d+)-).*",
+  "errorMsg":"Branch name format : <type>-<jira-id>-name"
+}

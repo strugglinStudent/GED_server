@@ -1,0 +1,65 @@
+{
+  "name": "ged-nova-node",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon --legacy-watch src/app.js",
+    "dev:data": "docker-compose up mongo-auth-nova-node",
+    "start": "node src/app.js",
+    "lint": "eslint ./",
+    "lint:fix": "eslint ./ --fix",
+    "test": "echo \"no test specified\"",
+    "change-log": "nodemon deploy/change-log.js 1.1.0",
+    "release": "npm run release:minor",
+    "release:minor": "npm version minor --no-git-tag-version",
+    "release:patch": "npm version patch --no-git-tag-version",
+    "release:major": "npm version major --no-git-tag-version",
+    "validate-branch": "validate-branch-name",
+    "commit-message-validator": "commit-message-validator",
+    "prepare": "husky install"
+  },
+  "author": "TIC-NOVA",
+  "license": "ISC",
+  "engines": {
+    "npm": ">=8.0.0 <9.0.0",
+    "node": ">=18.0.0 <19.0.0"
+  },
+  "dependencies": {
+    "@sentry/node": "^7.30.0",
+    "@sentry/tracing": "^7.30.0",
+    "axios": "^1.2.2",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "cron": "^3.1.7",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-validator": "^6.14.2",
+    "jsonwebtoken": "^9.0.0",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.4",
+    "mongoose": "^5.11.18",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.4",
+    "nodemailer": "^6.8.0",
+    "qrcode": "^1.5.3",
+    "slugify": "^1.6.5"
+  },
+  "devDependencies": {
+    "commit-message-validator": "^1.0.2",
+    "eslint": "^7.23.0",
+    "eslint-config-airbnb": "^18.2.1",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-plugin-import": "^2.22.1",
+    "git-tags": "^0.2.4",
+    "husky": "^6.0.0",
+    "nodemon": "^2.0.20",
+    "validate-branch-name": "^1.3.0"
+  },
+  "config": {
+    "commit-message-validator": {
+      "pattern": "^((Revert \")?\\[(FEATURE|BUGFIX|DOCS|STYLE|REFACTO|TEST|QUALITY|CHORE|RELEASE)\\](\\[((INN|HMP|HLP|PAY|AUT|TMS|GEO|CRM|WF|GED)-\\d+|CI SKIP)\\])? [A-Z]|Merge ((remote-tracking )?branch|commit) ).*",
+      "errorMessage": "Commit not good: please see https://tic-nova.atlassian.net/wiki/spaces/MML/pages/263061508/Workflow+Git+Flow"
+    }
+  }
+}

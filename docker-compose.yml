@@ -1,0 +1,42 @@
+version: '3'
+services:
+  ged-nova-node:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    image: ged-nova-node
+    container_name: ged-nova-node
+    volumes:
+      - ./:/home/
+    environment:
+      - MONGO_USERNAME=mongo
+      - MONGO_PASSWORD=mongo
+      - MONGO_PORT=27017
+      - MONGO_HOST=mongo-ged-nova-node
+      - PORT=8190
+      - ENV=LOCAL
+      - URL_FRONT=localhost:4200
+      - PROTOCAL_FRONT=http
+      - VERSION=local
+      - DATE_DEPLOY=Sun 18 Apr 2021 07:29:46 AM CEST
+      - EMAIL_HOST=ssl0.ovh.net
+      - EMAIL_PORT=465
+      - EMAIL_USER=dev-team@tic-nova.com
+      - EMAIL_PASS=dev-team0
+      - PRIVATE_KEY=YjUzNjIwNzNTjkMyOGM7YgFkGZ5NMDZGMxZWjA2Y2zkxMk2ZWZjYjY2NTIyYzA01OTg05U2ZiNEYZTAzFmNhZj
+    ports:
+      - 8290:8190
+    depends_on:
+      - mongo-ged-nova-node
+  mongo-ged-nova-node:
+    image: mongo:4.2.2
+    container_name: mongo-ged-nova-node
+    volumes:
+      - mongo-volume-ged-nova:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=mongo
+      - MONGO_INITDB_ROOT_PASSWORD=mongo
+    ports:
+      - 29090:27017
+volumes:
+  mongo-volume-ged-nova:

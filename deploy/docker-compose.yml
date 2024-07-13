@@ -1,0 +1,44 @@
+version: '3'
+services:
+  ged-nova-node-ENV-CI:
+    image: registry.gitlab.com/tic-nova/ged-nova/ged-nova-node:TAG-VERSION-CI
+    container_name: ged-nova-node-ENV-CI
+    restart: unless-stopped
+    volumes:
+      - ~/public-ged-nova-ENV-CI/:/home/src/public
+      - ~/private-ged-nova-ENV-CI/:/home/src/private
+    environment:
+      - MONGO_USERNAME=MONGO-USERNAME-CI
+      - MONGO_PASSWORD=MONGO-PASSWORD-CI
+      - MONGO_PORT=27017
+      - MONGO_HOST=mongo-ged-nova-node-ENV-CI
+      - PORT=80
+      - ENV=ENV-CI
+      - URL_FRONT=URL-FRONT-CI
+      - PROTOCAL_FRONT=PROTOCAL-FRONT-CI
+      - VERSION=TAG-VERSION-CI
+      - DATE_DEPLOY=DATE-DEPLOY-CI
+      - EMAIL_HOST=EMAIL-HOST-CI
+      - EMAIL_PORT=EMAIL-PORT-CI
+      - EMAIL_USER=EMAIL-USER-CI
+      - EMAIL_PASS=EMAIL-PASS-CI
+      - EMAIL_DKIM_PRIVATE_KEY=EMAIL-DKIM-PRIVATE-KEY-CI
+      - PRIVATE_KEY=PRIVATE-KEY-CI
+      - BCC_EMAIL_USER=BCC-EMAIL-USER-CI
+    ports:
+      - PORT-CI:80
+    depends_on:
+      - mongo-ged-nova-node-ENV-CI
+  mongo-ged-nova-node-ENV-CI:
+    image: mongo:4.2.2
+    container_name: mongo-ged-nova-node-ENV-CI
+    restart: unless-stopped
+    volumes:
+      - mongo-volume-ged-nova-ENV-CI:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=MONGO-USERNAME-CI
+      - MONGO_INITDB_ROOT_PASSWORD=MONGO-PASSWORD-CI
+    ports:
+      - MONGO-PORT-CI:27017
+volumes:
+  mongo-volume-ged-nova-ENV-CI:

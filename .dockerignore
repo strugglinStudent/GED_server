@@ -1,0 +1,16 @@
+.idea
+.husky
+.git
+node_modules
+.dockerignore
+.editorconfig
+.eslintrc.js
+.gitignore
+.gitlab-ci.yml
+.validate-branch-namerc
+docker-compose.yml
+deploy/Dockerfile
+Dockerfile
+deploy/change-log.js
+npm-debug.log
+README.md
